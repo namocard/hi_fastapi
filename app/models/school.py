@@ -5,9 +5,10 @@ from app.db.base import Base
 
 
 class School(Base):
+    __tablename__ = "Schools"
     id = Column("Id", Integer, primary_key=True, index=True)
     name = Column("Name", String(128))
     established_date = Column("EstablishedDate", Date)
     address = Column("Address", String(512))
-    students = relationship("Student", back_populates="students")
+    students = relationship("Student", back_populates="school")
     grades = relationship("Grade", back_populates="school")
