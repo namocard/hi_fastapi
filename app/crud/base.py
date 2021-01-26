@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql.elements import UnaryExpression
 
 from app.db.base import Base
+from app.core.identifier import generate_unique_int
 
 ModelType = TypeVar("ModelType", bound=Base)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
@@ -76,6 +77,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     def create(self, session: Session, *, obj_in: CreateSchemaType) -> ModelType:
         obj_in_data = jsonable_encoder(obj_in)
         db_obj = self.model(**obj_in_data)  # type: ignore
+        db_obj.id = generate_unique_int()
         session.add(db_obj)
         return db_obj
 
@@ -91,8 +93,6 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             if field in update_data:
                 setattr(db_obj, field, update_data[field])
         session.add(db_obj)
-        session.commit()
-        session.refresh(db_obj)
         return db_obj
 
     def remove(self, session: Session, *, id: int) -> ModelType:

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Date, Integer, String
+from sqlalchemy import Column, Date, BigInteger, String
 from sqlalchemy.orm import relationship
 
 from app.db.base import Base
@@ -6,7 +6,7 @@ from app.db.base import Base
 
 class School(Base):
     __tablename__ = "Schools"
-    id = Column("Id", Integer, primary_key=True, index=True)
+    id = Column("Id", BigInteger, primary_key=True, index=True)
     name = Column("Name", String(128))
     established_date = Column("EstablishedDate", Date)
     address = Column("Address", String(512))
