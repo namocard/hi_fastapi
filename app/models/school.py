@@ -1,10 +1,10 @@
 from sqlalchemy import Column, Date, BigInteger, String
 from sqlalchemy.orm import relationship
 
-from app.db.base import Base
+from app.db.base import Base, TimestampMixin
 
 
-class School(Base):
+class School(Base, TimestampMixin):
     __tablename__ = "Schools"
     id = Column("Id", BigInteger, primary_key=True, index=True)
     name = Column("Name", String(128))

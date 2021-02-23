@@ -1,6 +1,8 @@
+from typing import List
 import datetime
 
 from pydantic import BaseModel
+from app.schemas.grade import Grade
 
 
 class SchoolBase(BaseModel):
@@ -25,4 +27,4 @@ class SchoolDbBase(SchoolBase):
 
 
 class School(SchoolDbBase):
-    pass
+    grades: List[Grade]

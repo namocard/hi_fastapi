@@ -54,7 +54,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         model: ModelType,
         criteria_map: Dict[str, Any],
         order_by: UnaryExpression = None,
-        limit: int = 0,
+        limit: int = 100,
         skip: int = 0,
     ) -> Optional[ModelType]:
         query = session.query(model)

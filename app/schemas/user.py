@@ -17,8 +17,12 @@ class UserCreate(UserBase):
     password: str
 
 
+class AdminUserCreate(UserCreate):
+    secret_key: str
+
+
 class UserUpdate(UserBase):
-    password: str
+    password: Optional[str]
 
 
 class UserDbBase(UserBase):

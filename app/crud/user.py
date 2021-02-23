@@ -10,7 +10,7 @@ from app.crud.base import CRUDBase
 
 
 class CRUDUser(CRUDBase[models.User, schemas.UserCreate, schemas.UserUpdate]):
-    def create(self, session: Session, *, obj_in: schemas.UserCreate) -> models.User:
+    def create(self, session: Session, obj_in: schemas.UserCreate) -> models.User:
         db_obj = models.User(
             id=generate_unique_int(),
             username=obj_in.username,
@@ -23,13 +23,13 @@ class CRUDUser(CRUDBase[models.User, schemas.UserCreate, schemas.UserUpdate]):
         return db_obj
 
     def update(
-        self, session: Session, *, db_obj: models.User, obj_in: Union[schemas.UserUpdate, Dict[str, Any]]
+        self, session: Session, db_obj: models.User, obj_in: Union[schemas.UserUpdate, Dict[str, Any]]
     ) -> models.User:
         if isinstance(obj_in, dict):
             update_data = obj_in
         else:
             update_data = obj_in.dict(exclude_unset=True)
-        if update_data["password"]:
+        if update_data.get("password"):
             hashed_password = get_password_hash(update_data["password"])
             del update_data["password"]
             update_data["hashed_password"] = hashed_password

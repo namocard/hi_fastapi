@@ -4,6 +4,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException
 from fastapi.encoders import jsonable_encoder
 from pydantic.networks import EmailStr
 from sqlalchemy.orm import Session
+from fastapi import status
 
 from app import crud, models, schemas
 from app.api import deps
@@ -12,35 +13,58 @@ from app.core.config import settings
 router = APIRouter()
 
 
+@router.post("/admin", response_model=schemas.User)
+def create_admin_user(*, session: Session = Depends(deps.get_session), user_in: schemas.AdminUserCreate) -> Any:
+    if user_in.secret_key != settings.SECRET_KEY:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The secret key is not correct")
+    db_user = crud.user.get_by_map(session, models.User, {"username": user_in.username})
+    if db_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The user with this username already exists in the system",
+        )
+    db_user = crud.user.get_by_map(session, models.User, {"username": user_in.username})
+    if db_user:
+        raise HTTPException(
+            status_code=400,
+            detail="The email address has been used",
+        )
+    user_in.is_superuser = True
+    db_user = crud.user.create(session, obj_in=user_in)
+    session.commit()
+    return db_user
+
+
 @router.get("/", response_model=List[schemas.User])
 def read_users(
     session: Session = Depends(deps.get_session),
     skip: int = 0,
     limit: int = 100,
-    current_user: models.User = Depends(deps.get_current_active_superuser),
+    _: models.User = Depends(deps.get_current_active_superuser),
 ) -> Any:
     """
     Retrieve users.
     """
-    users = crud.user.get_multi(session, skip=skip, limit=limit)
+    users = crud.user.get_multi_by_map(session, models.User, {}, limit=limit, skip=skip)
     return users
 
 
 @router.post("/", response_model=schemas.User)
-def create_user(
-    *,
-    session: Session = Depends(deps.get_session),
-    user_in: schemas.UserCreate,
-    current_user: models.User = Depends(deps.get_current_active_superuser),
-) -> Any:
+def create_user(*, session: Session = Depends(deps.get_session), user_in: schemas.UserCreate) -> Any:
     """
     Create new user.
     """
     db_user = crud.user.get_by_map(session, models.User, {"username": user_in.username})
     if db_user:
         raise HTTPException(
-            status_code=400,
-            detail="The user with this username already exists in the system.",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The user with this username already exists in the system",
+        )
+    db_user = crud.user.get_by_map(session, models.User, {"email": user_in.email})
+    if db_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The email address has been used",
         )
     db_user = crud.user.create(session, obj_in=user_in)
     session.commit()
@@ -83,35 +107,6 @@ def read_user_me(
     return current_user
 
 
-@router.post("/open", response_model=schemas.User)
-def create_user_open(
-    *,
-    session: Session = Depends(deps.get_session),
-    username: str = Body(...),
-    password: str = Body(...),
-    email: EmailStr = Body(...),
-    full_name: str = Body(None),
-) -> Any:
-    """
-    Create new user without the need to be logged in.
-    """
-    if not settings.USERS_OPEN_REGISTRATION:
-        raise HTTPException(
-            status_code=403,
-            detail="Open user registration is forbidden on this server",
-        )
-    db_user = crud.user.get_by_map(session, models.User, {"username": username})
-    if db_user:
-        raise HTTPException(
-            status_code=400,
-            detail="The user with this username already exists in the system",
-        )
-    user_in = schemas.UserCreate(username=username, password=password, email=email, full_name=full_name)
-    db_user = crud.user.create(session, obj_in=user_in)
-    session.commit()
-    return db_user
-
-
 @router.get("/{user_id}", response_model=schemas.User)
 def read_user_by_id(
     user_id: int,
@@ -125,7 +120,7 @@ def read_user_by_id(
     if user == current_user:
         return user
     if not crud.user.is_superuser(current_user):
-        raise HTTPException(status_code=400, detail="The user doesn't have enough privileges")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The user doesn't have enough privileges")
     return user
 
 
@@ -135,7 +130,7 @@ def update_user(
     session: Session = Depends(deps.get_session),
     user_id: int,
     user_in: schemas.UserUpdate,
-    current_user: models.User = Depends(deps.get_current_active_superuser),
+    _: models.User = Depends(deps.get_current_active_superuser),
 ) -> Any:
     """
     Update a user.
@@ -143,9 +138,24 @@ def update_user(
     user = crud.user.get(session, id=user_id)
     if not user:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="The user with this username does not exist in the system",
         )
     user = crud.user.update(session, db_obj=user, obj_in=user_in)
     session.commit()
     return user
+
+
+@router.delete("/{user_id}")
+def delete_user(
+    *,
+    session: Session = Depends(deps.get_session),
+    user_id: int,
+    _: models.User = Depends(deps.get_current_active_superuser),
+) -> Any:
+    db_user = crud.user.get_by_map(session, models.User, {"id": user_id})
+    if not db_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="The user with this user id does not exist")
+    session.delete(db_user)
+    session.commit()
+    return {"status": "success", "message": "success"}
