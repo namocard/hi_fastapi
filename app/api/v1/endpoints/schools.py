@@ -1,4 +1,3 @@
-from os import stat, stat_result
 from typing import List
 from fastapi import APIRouter
 
@@ -38,6 +37,19 @@ async def read_school(
         return db_school
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="School id does not exist")
+
+
+@router.get("/{school_id}/grades", response_model=List[schemas.Grade])
+async def read_grades(
+    *,
+    session: Session = Depends(deps.get_session),
+    school_id: int,
+    _: models.User = Depends(deps.get_current_active_user)
+) -> List[schemas.Grade]:
+    db_school = crud.school.get_by_map(session, models.School, {"id": school_id})
+    if not db_school:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="School id does not exist")
+    return db_school.grades
 
 
 @router.get("/", response_model=List[schemas.School])

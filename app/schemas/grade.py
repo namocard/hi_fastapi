@@ -1,3 +1,4 @@
+from app.schemas.school import School
 from pydantic import BaseModel
 
 
@@ -22,4 +23,4 @@ class GradeDbBase(GradeBase):
 
 
 class Grade(GradeDbBase):
-    pass
+    school: School

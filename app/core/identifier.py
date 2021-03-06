@@ -2,4 +2,4 @@ import uuid
 
 
 def generate_unique_int():
-    return uuid.uuid1().int >> 90
+    return uuid.uuid4().int >> 90
